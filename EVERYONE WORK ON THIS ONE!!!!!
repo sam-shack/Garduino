@@ -1,1 +1,9 @@
 
+//change these to the analog pins used for the sensors
+#define soil1 A1
+#define soil2 A3
+#define soil3 A4
+#define soil4 A5 
+
+void loop () {
+
