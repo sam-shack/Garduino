@@ -1,0 +1,315 @@
+<!DOCTYPE HTML><html>
+<!-- Rui Santos - Complete project details at https://RandomNerdTutorials.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software. -->
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <style>
+    body {
+      min-width: 310px;
+    	max-width: 800px;
+    	height: 400px;
+      margin: 0 auto;
+    }
+    h2 {
+      font-family: Arial;
+      font-size: 2.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>ESP Weather Station</h2>
+  <div id="chart-temperatureF" class="container"></div>
+  <div id="chart-soilMoisture1" class="container"></div>
+  <div id="chart-soilMoisture2" class="container"></div>
+  <div id="chart-soilMoisture3" class="container"></div>
+  <div id="chart-soilMoisture4" class="container"></div>
+  <div id="chart-light" class="container"></div>
+  <div id="chart-waterLevel" class="container"></div>
+</body>
+<script>
+var chartTF = new Highcharts.Chart({
+  chart:{ renderTo : 'chart-temperatureF' },
+  title: { text: 'Temperature (F)' },
+  series: [{
+    showInLegend: false,
+    data: []
+  }],
+  plotOptions: {
+    line: { animation: false,
+      dataLabels: { enabled: true }
+    },
+    series: { color: '#059e8a' }
+  },
+  xAxis: { type: 'datetime',
+    dateTimeLabelFormats: { second: '%H:%M:%S' }
+  },
+  yAxis: {
+    title: { text: 'Temperature (F)' }
+    //title: { text: 'Temperature (Fahrenheit)' }
+  },
+  credits: { enabled: false }
+});
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      var x = (new Date()).getTime(),
+          y = parseFloat(this.responseText);
+      //console.log(this.responseText);
+      if(chartTF.series[0].data.length > 40) {
+        chartTF.series[0].addPoint([x, y], true, true, true);
+      } else {
+        chartTF.series[0].addPoint([x, y], true, false, true);
+      }
+    }
+  };
+  xhttp.open("GET", "/getTemperatureF", true);
+  xhttp.send();
+}, 10000 ) ;
+
+var chartSM1 = new Highcharts.Chart({
+  chart:{ renderTo:'chart-soilMoisture1' },
+  title: { text: 'Soil Moisture 1' },
+  series: [{
+    showInLegend: false,
+    data: []
+  }],
+  plotOptions: {
+    line: { animation: false,
+      dataLabels: { enabled: true }
+    }
+  },
+  xAxis: {
+    type: 'datetime',
+    dateTimeLabelFormats: { second: '%H:%M:%S' }
+  },
+  yAxis: {
+    title: { text: 'Soil Moisture (%)' }
+  },
+  credits: { enabled: false }
+});
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      var x = (new Date()).getTime(),
+          y = parseFloat(this.responseText);
+      //console.log(this.responseText);
+      if(chartSM1.series[0].data.length > 40) {
+        chartSM1.series[0].addPoint([x, y], true, true, true);
+      } else {
+        chartSM1.series[0].addPoint([x, y], true, false, true);
+      }
+    }
+  };
+  xhttp.open("GET", "/getSoilMoisture1", true);
+  xhttp.send();
+}, 10000 ) ;
+
+var chartSM2 = new Highcharts.Chart({
+  chart:{ renderTo:'chart-soilMoisture2' },
+  title: { text: 'Soil Moisture 2' },
+  series: [{
+    showInLegend: false,
+    data: []
+  }],
+  plotOptions: {
+    line: { animation: false,
+      dataLabels: { enabled: true }
+    },
+    series: { color: '#18009c' }
+  },
+  xAxis: {
+    type: 'datetime',
+    dateTimeLabelFormats: { second: '%H:%M:%S' }
+  },
+  yAxis: {
+    title: { text: 'Soil Moisture (%)' }
+  },
+  credits: { enabled: false }
+});
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      var x = (new Date()).getTime(),
+          y = parseFloat(this.responseText);
+      //console.log(this.responseText);
+      if(chartSM2.series[0].data.length > 40) {
+        chartSM2.series[0].addPoint([x, y], true, true, true);
+      } else {
+        chartSM2.series[0].addPoint([x, y], true, false, true);
+      }
+    }
+  };
+  xhttp.open("GET", "/getSoilMoisture2", true);
+  xhttp.send();
+}, 10000 ) ;
+
+var chartSM3 = new Highcharts.Chart({
+  chart:{ renderTo:'chart-soilMoisture3' },
+  title: { text: 'Soil Moisture 3' },
+  series: [{
+    showInLegend: false,
+    data: []
+  }],
+  plotOptions: {
+    line: { animation: false,
+      dataLabels: { enabled: true }
+    },
+    series: { color: '#18009c' }
+  },
+  xAxis: {
+    type: 'datetime',
+    dateTimeLabelFormats: { second: '%H:%M:%S' }
+  },
+  yAxis: {
+    title: { text: 'Soil Moisture (%)' }
+  },
+  credits: { enabled: false }
+});
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      var x = (new Date()).getTime(),
+          y = parseFloat(this.responseText);
+      //console.log(this.responseText);
+      if(chartSM3.series[0].data.length > 40) {
+        chartSM3.series[0].addPoint([x, y], true, true, true);
+      } else {
+        chartSM3.series[0].addPoint([x, y], true, false, true);
+      }
+    }
+  };
+  xhttp.open("GET", "/getSoilMoisture3", true);
+  xhttp.send();
+}, 10000 ) ;
+
+var chartSM4 = new Highcharts.Chart({
+  chart:{ renderTo:'chart-soilMoisture4' },
+  title: { text: 'Soil Moisture 4' },
+  series: [{
+    showInLegend: false,
+    data: []
+  }],
+  plotOptions: {
+    line: { animation: false,
+      dataLabels: { enabled: true }
+    },
+    series: { color: '#18009c' }
+  },
+  xAxis: {
+    type: 'datetime',
+    dateTimeLabelFormats: { second: '%H:%M:%S' }
+  },
+  yAxis: {
+    title: { text: 'Soil Moisture (%)' }
+  },
+  credits: { enabled: false }
+});
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      var x = (new Date()).getTime(),
+          y = parseFloat(this.responseText);
+      //console.log(this.responseText);
+      if(chartSM4.series[0].data.length > 40) {
+        chartSM4.series[0].addPoint([x, y], true, true, true);
+      } else {
+        chartSM4.series[0].addPoint([x, y], true, false, true);
+      }
+    }
+  };
+  xhttp.open("GET", "/getSoilMoisture4", true);
+  xhttp.send();
+}, 10000 ) ;
+
+var chartL = new Highcharts.Chart({
+  chart:{ renderTo:'chart-light' },
+  title: { text: 'Light Reading' },
+  series: [{
+    showInLegend: false,
+    data: []
+  }],
+  plotOptions: {
+    line: { animation: false,
+      dataLabels: { enabled: true }
+    },
+    series: { color: '#18009c' }
+  },
+  xAxis: {
+    type: 'datetime',
+    dateTimeLabelFormats: { second: '%H:%M:%S' }
+  },
+  yAxis: {
+    title: { text: 'Lux (lx)' }
+  },
+  credits: { enabled: false }
+});
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      var x = (new Date()).getTime(),
+          y = parseFloat(this.responseText);
+      //console.log(this.responseText);
+      if(chartL.series[0].data.length > 40) {
+        chartL.series[0].addPoint([x, y], true, true, true);
+      } else {
+        chartL.series[0].addPoint([x, y], true, false, true);
+      }
+    }
+  };
+  xhttp.open("GET", "/getLight", true);
+  xhttp.send();
+}, 10000 ) ;
+
+var chartWL = new Highcharts.Chart({
+  chart:{ renderTo:'chart-waterLevel' },
+  title: { text: 'Water Level' },
+  series: [{
+    showInLegend: false,
+    data: []
+  }],
+  plotOptions: {
+    line: { animation: false,
+      dataLabels: { enabled: true }
+    },
+    series: { color: '#18009c' }
+  },
+  xAxis: {
+    type: 'datetime',
+    dateTimeLabelFormats: { second: '%H:%M:%S' }
+  },
+  yAxis: {
+    title: { text: 'Water Level (%)' }
+  },
+  credits: { enabled: false }
+});
+setInterval(function ( ) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      var x = (new Date()).getTime(),
+          y = parseFloat(this.responseText);
+      //console.log(this.responseText);
+      if(chartWL.series[0].data.length > 40) {
+        chartWL.series[0].addPoint([x, y], true, true, true);
+      } else {
+        chartWL.series[0].addPoint([x, y], true, false, true);
+      }
+    }
+  };
+  xhttp.open("GET", "/getWaterLevel", true);
+  xhttp.send();
+}, 10000 ) ;
+</script>
+</html>
