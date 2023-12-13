@@ -1,0 +1,423 @@
+// Included Libraries
+  #include <Wire.h>
+  #include "SPI.h"
+  #include "Adafruit_GFX.h"
+  #include "Adafruit_ILI9341.h"
+  #include "DS18B20.h"
+  #include "OneWire.h"
+
+// Declare Variables
+  float tempK, tempC, tempF, lightReading, waterLevel;
+  float soilMoisture1, soilMoisture2, soilMoisture3, soilMoisture4;
+  float capSoilValue1, capSoilValue2, capSoilValue3, capSoilValue4;
+  int airValue1, airValue2, airValue3, airValue4 = 0;
+  int waterValue1, waterValue2, waterValue3, waterValue4 = 0;
+  long int seconds = 0;
+  int buttonState = 0;
+
+// Calibration Booleans
+  bool flag = HIGH; //Flag To Control While Loops
+  bool calibrating = false;
+  bool calibratingComplete = false;
+
+//Setting up temperature sensor
+  //DS18B20 ds(30);
+
+//OLED Pins (For Bigger OLED need some 10kOhm resistors)
+  #define TFT_DC 9    // Green + Yellow
+  #define TFT_CS 53   // Yellow + Blue
+  #define TFT_MOSI 51 // Blue + Green
+  #define TFT_CLK 52  // Green + Purple
+  Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK);
+
+// Setting Pins
+  #define thermistor A0
+  #define photoRes A1
+  #define capSoilSensor1 A2
+  #define capSoilSensor2 A3
+  #define capSoilSensor3 A6 
+  #define capSoilSensor4 A7
+  #define floatSwitch25 4
+  #define floatSwitch50 5
+  #define floatSwitch75 6
+  #define floatSwitch100 7
+  #define pushButton 3
+  #define relay1 22
+  #define relay2 23
+  #define relay3 24
+  #define relay4 25
+
+// Sets Up LCD & Pins
+  void setup() {
+    Serial.begin(9600);                     // Start Serial Monitor
+    pinMode (pushButton, INPUT);            // Button Is An Input
+    // Float Switch Set-Up
+      pinMode(floatSwitch25, INPUT_PULLUP);
+      pinMode(floatSwitch50, INPUT_PULLUP);
+      pinMode(floatSwitch75, INPUT_PULLUP);
+      pinMode(floatSwitch100, INPUT_PULLUP);
+    // Relay Set-Up (HIGH = Off, LOW = On)
+      pinMode(relay1, OUTPUT);
+      digitalWrite(relay1, HIGH);
+      pinMode(relay2, OUTPUT);
+      digitalWrite(relay2, HIGH);
+      pinMode(relay3, OUTPUT);
+      digitalWrite(relay3, HIGH);
+      pinMode(relay4, OUTPUT);
+      digitalWrite(relay4, HIGH);
+    //OLED Set-Up
+      tft.begin();                            // Start OLED
+      tft.fillScreen(ILI9341_BLACK);          // Set OLED Background Color
+      tft.setCursor(0, 0);                    // Set OLED Cursor Position 
+      tft.setTextColor(ILI9341_WHITE);        // Set Text Color
+      tft.setTextSize(1);                     // Set Text Size
+      tft.println("Waiting for input");
+  }
+
+// Calls Functions Every 10 Seconds
+  void loop(){  
+    buttonState = digitalRead(pushButton);
+    //Once Button Is Pressed Start Calibration Code  
+      if(buttonState == 1 && calibrating == false){
+        calibrateSensors();
+      }
+    //Once Calibration Is Complete Start 10 Second Timer
+      if(calibratingComplete == true){
+        setClock();
+      }
+    //Once Calibration Is Done, Call Functions Every 10 Seconds  
+      if(seconds == 10 && calibratingComplete == true){
+        collectedData();
+        activatePumps();
+        printData();
+        printText();
+      }
+  }
+
+// 10 Second Timer
+  void setClock(){
+    seconds++;
+    delay(1000);
+    if(seconds > 10)
+    {seconds = 0;}
+  }
+
+// Activate Pumps
+  void activatePumps(){
+    if(soilMoisture1 < 50){digitalWrite(relay1, LOW);} 
+      else {digitalWrite(relay1, HIGH);}
+    if(soilMoisture2 < 50){digitalWrite(relay2, LOW);} 
+      else {digitalWrite(relay2, HIGH);}
+    if(soilMoisture3 < 50){digitalWrite(relay3, LOW);} 
+      else {digitalWrite(relay3, HIGH);}
+    if(soilMoisture4 < 50){digitalWrite(relay4, LOW);} 
+      else {digitalWrite(relay4, HIGH);}
+  }
+
+// Collects Data From Sensors
+  void collectedData(){
+    // Water Level [%] (Float Switches)
+      int floatState25 = digitalRead(floatSwitch25);
+      int floatState50 = digitalRead(floatSwitch50);
+      int floatState75 = digitalRead(floatSwitch75);
+      int floatState100 = digitalRead(floatSwitch100);
+    // Depending On Which Switches Are Active Will Change Value Of Water Level  
+      if(floatState25 && !floatState50 && !floatState75 && !floatState100)  {waterLevel = 25;}
+      else if(floatState50 && !floatState75 && !floatState100)              {waterLevel = 50;}
+      else if(floatState75 && !floatState100)                               {waterLevel = 75;}
+      else if(floatState100)                                                {waterLevel = 100;}
+      else                                                                  {waterLevel = 0;}
+    // Lux [Lx] (Photo-Resistor)
+      lightReading = random(500.00,800.00);//analogRead(photoRes);
+    // Temperature [K, F, C] (Thermistor)
+      // int tempAir  = analogRead(thermistor);
+      // tempK = log(10000.0 * ((1024.0 / tempAir - 1)));
+      // tempK = 1 / (0.001129148 + (0.000234125 + (0.0000000876741 * tempK * tempK )) * tempK );
+      tempK = random(294.00,311.00);
+      tempC = tempK - 273.15;
+      tempF = (tempC * 9.0)/ 5.0 + 32.0;
+    // Soil Moisutre [%] (Capacitive Soil Moisture Sensors)   
+      capSoilValue1 = analogRead(A2);
+      capSoilValue2 = analogRead(A3);
+      capSoilValue3 = analogRead(A6);
+      capSoilValue4 = analogRead(A7);
+    // Turn Soil Moisture Value To %
+      soilMoisture1 = map(capSoilValue1, airValue1, waterValue1, 0, 100);
+      soilMoisture2 = map(capSoilValue2, airValue2, waterValue2, 0, 100);    
+      soilMoisture3 = map(capSoilValue3, airValue3, waterValue3, 0, 100);    
+      soilMoisture4 = map(capSoilValue4, airValue4, waterValue4, 0, 100);    
+  }
+
+//Print Data on OLED Screen
+  unsigned long printText(){
+    tft.fillScreen(ILI9341_BLACK);
+    unsigned long start = micros();
+    tft.setCursor(0, 0);
+    tft.setTextSize(2);
+    tft.println("Join Garduino!!");
+    tft.println("Data");
+    tft.setTextSize(1);
+    tft.print("Soil Moisture 1: "); tft.println(soilMoisture1);
+    tft.print("Soil Moisture 2: "); tft.println(soilMoisture2);
+    tft.print("Soil Moisture 3: "); tft.println(soilMoisture3);
+    tft.print("Soil Moisture 4: "); tft.println(soilMoisture4);
+    tft.print("Temperature (F): "); tft.println(tempF);
+    tft.print("Light Reading:   "); tft.println(lightReading);
+    tft.print("Water Level:     "); tft.println(waterLevel);
+    return micros() - start;
+  }
+  
+// Prints Out Data To Send to ESP (Ex: <10.2, 11.89, 59.00>)
+  void printData(){
+    Serial.print("<");
+      Serial.print(lightReading);
+      Serial.print(", ");
+      Serial.print(tempK);
+      Serial.print(", ");
+      Serial.print(tempC);
+      Serial.print(", ");
+      Serial.print(tempF);
+      Serial.print(", ");
+      Serial.print(waterLevel);
+      Serial.print(", ");
+      Serial.print(soilMoisture1);
+      Serial.print(", ");
+      Serial.print(soilMoisture2);
+      Serial.print(", ");
+      Serial.print(soilMoisture3);
+      Serial.print(", ");
+      Serial.print(soilMoisture4);
+    Serial.println(">");
+  }
+
+//Aryan Calibraiton Code
+  void calibrateSensors(){
+    calibrating = true;
+    if(buttonState == 1){                  //if button is pressed, start calibration
+        //signal to user
+    tft.fillScreen(ILI9341_BLACK);
+    tft.setCursor(0, 0);
+    while(flag){
+      if(buttonState == 1){
+
+        tft.println("Prepare sensor one for dry value");
+        delay(500);
+        buttonState = 0;
+        tft.println("Press button when ready to calibrate");
+        while(buttonState == 0){
+          buttonState = digitalRead(pushButton);
+          if(buttonState == HIGH){
+            tft.println("Reading dry value for sensor one");
+            airValue1 = analogRead(capSoilSensor1);                        //read and store dry value for this sensor
+            delay(500);
+            tft.println("Sensor one dry value read");
+
+            tft.println("Proceeding to wet value");
+            flag = LOW;                                           //set flag to escape while loop
+          }
+
+        }
+      }
+    }
+
+    flag = HIGH;                                                  //reset flag to remain in next loop
+
+
+    while(flag){
+      buttonState = digitalRead(pushButton);
+
+      if(buttonState == HIGH){
+        tft.println("Prepare sensor one for wet value");
+        delay(500);
+        buttonState = LOW;
+        tft.println("Press button when ready to calibrate");
+        while(buttonState == LOW){
+          buttonState = digitalRead(pushButton);
+          if(buttonState == HIGH){
+            tft.println("Reading wet value for sensor one");
+            waterValue1 = analogRead(capSoilSensor1);                      //read and store wet value for this sensor
+            delay(500);
+            tft.println("Sensor one wet value read");
+
+            tft.println("Proceeding to next sensor");
+            flag = LOW;
+          } 
+        }
+      }
+    }
+
+            //repeat for remaining sensors
+
+
+    flag = HIGH;
+
+    while(flag){
+      if(buttonState == HIGH){
+
+        tft.println("Prepare sensor two for dry value");
+        delay(500);
+        buttonState = LOW;
+        tft.println("Press button when ready to calibrate");
+        while(buttonState == LOW){
+          buttonState = digitalRead(pushButton);
+          if(buttonState == HIGH){
+            tft.println("Reading dry value for sensor two");
+            airValue2 = analogRead(capSoilSensor2);
+            delay(500);
+            tft.println("Sensor two dry value read");
+
+            tft.println("Proceeding to wet value");
+            flag = LOW;
+          }
+        }
+      }
+    }
+
+    flag = HIGH;
+
+
+    while(flag){
+      buttonState = digitalRead(pushButton);
+
+      if(buttonState == HIGH){
+        tft.println("Prepare sensor two for wet value");
+        delay(500);
+        buttonState = LOW;
+        tft.println("Press button when ready to calibrate");
+        while(buttonState == LOW){
+          buttonState = digitalRead(pushButton);
+          if(buttonState == HIGH){
+            tft.println("Reading wet value for sensor two");
+            waterValue2 = analogRead(capSoilSensor2);
+            delay(500);
+            tft.println("Sensor two wet value read");
+
+            tft.println("Proceeding to next sensor");
+            flag = LOW;
+          } 
+        }
+      }
+    }
+
+    flag = HIGH;
+
+    while(flag){
+      if(buttonState == HIGH){
+
+        tft.println("Prepare sensor three for dry value");
+        delay(500);
+        buttonState = LOW;
+        tft.println("Press button when ready to calibrate");
+        while(buttonState == LOW){
+          buttonState = digitalRead(pushButton);
+          if(buttonState == HIGH){
+            tft.println("Reading dry value for sensor three");
+            airValue3 = analogRead(capSoilSensor3);
+            delay(500);
+            tft.println("Sensor three dry value read");
+
+            tft.println("Proceeding to wet value");
+            flag = LOW;
+          }
+        }
+      }
+    }
+
+    flag = HIGH;
+
+
+    while(flag){
+      buttonState = digitalRead(pushButton);
+
+      if(buttonState == HIGH){
+        tft.println("Prepare sensor three for wet value");
+        delay(500);
+        buttonState = LOW;
+        tft.println("Press button when ready to calibrate");
+        while(buttonState == LOW){
+          buttonState = digitalRead(pushButton);
+          if(buttonState == HIGH){
+            tft.println("Reading wet value for sensor three");
+            waterValue3 = analogRead(capSoilSensor3);
+            delay(500);
+            tft.println("Sensor three wet value read");
+
+            tft.println("Proceeding to next sensor");
+            flag = LOW;
+          }
+        }
+      }
+    }
+
+    flag = HIGH;
+
+    while(flag){
+      if(buttonState == HIGH){
+
+        tft.println("Prepare sensor four for dry value");
+        delay(500);
+        buttonState = LOW;
+        tft.println("Press button when ready to calibrate");
+        while(buttonState == LOW){
+          buttonState = digitalRead(pushButton);
+          if(buttonState == HIGH){
+            tft.println("Reading dry value for sensor four");
+            airValue4 = analogRead(capSoilSensor4);
+            delay(500);
+            tft.println("Sensor four dry value read");
+
+            tft.println("Proceeding to wet value");
+            flag = LOW;
+          }
+        }
+      }
+    }
+
+    flag = HIGH;
+
+
+    while(flag){
+      buttonState = digitalRead(pushButton);
+
+      if(buttonState == HIGH){
+        tft.println("Prepare sensor four for wet value");
+        delay(500);
+        buttonState = LOW;
+        tft.println("Press button when ready to calibrate");
+        while(buttonState == LOW){
+          buttonState = digitalRead(pushButton);
+          if(buttonState == HIGH){
+            tft.println("Reading wet value for sensor four");
+            waterValue4 = analogRead(capSoilSensor4);
+            delay(500);
+            tft.println("Sensor four wet value read");
+
+            tft.println("Calibration complete for all sensors!!");
+            delay(2000);
+            flag = LOW;
+          } 
+        }
+      }
+    }
+
+    flag = HIGH;
+
+    //display calibration values to user
+
+    tft.fillScreen(ILI9341_BLACK);
+    // unsigned long start = micros();
+    tft.setCursor(0, 0);
+    tft.setTextColor(ILI9341_WHITE);  tft.setTextSize(1);
+    tft.println("Displaying Calibrated Values:");
+    tft.println("Sensor 1 ");
+    tft.print(" Dry Value: "); tft.print(airValue1); tft.print("  Wet Value: "); tft.println(waterValue1);
+    tft.println("Sensor 2 ");
+    tft.print(" Dry Value: "); tft.print(airValue2); tft.print("  Wet Value: "); tft.println(waterValue2);
+    tft.println("Sensor 3 ");
+    tft.print(" Dry Value: "); tft.print(airValue3); tft.print("  Wet Value: "); tft.println(waterValue3);
+    tft.println("Sensor 4 ");
+    tft.print(" Dry Value: "); tft.print(airValue4); tft.print("  Wet Value: "); tft.println(waterValue4);
+    tft.println(":)");
+    calibratingComplete = true;
+    }
+  }
